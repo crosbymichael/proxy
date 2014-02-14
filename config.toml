@@ -1,0 +1,14 @@
+
+log = "stderr"
+dns = "172.17.42.1"
+
+[backends]
+    [backends.redis]
+    proto = "tcp"
+    ip = "192.168.56.9"
+    port = 6379
+    query = "redis.dev.docker."
+    records = "SRV"
+    max_concurrent = 20
+
+    
