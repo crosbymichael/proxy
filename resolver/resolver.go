@@ -45,11 +45,7 @@ func Resolve(query, server string) (*Result, error) {
 		if len(reply.Answer) == 0 {
 			return nil, fmt.Errorf("no backends avaliable for %s", query)
 		}
-		result, err = createResult(reply)
-		if err != nil {
-			return nil, err
-		}
-		cache[query] = append(cache[query], result)
+		result = fillCache(query, reply)
 	}
 	return result, nil
 }
@@ -63,6 +59,27 @@ func resolveSRV(query, server string) (*dns.Msg, error) {
 		return nil, err
 	}
 	return reply, err
+}
+
+func fillCache(query string, msg *dns.Msg) *Result {
+	results := cache[query]
+	for i, answer := range msg.Answer {
+		if srv, ok := answer.(*dns.SRV); ok {
+			extra := msg.Extra[i]
+			if ev, ok := extra.(*dns.A); ok {
+				r := &Result{
+					Port:      int(srv.Port),
+					TimeAdded: time.Now(),
+					TTL:       int(srv.Header().Ttl),
+					Active:    true,
+					IP:        ev.A,
+				}
+				results = append(results, r)
+			}
+		}
+	}
+	cache[query] = results
+	return results[0]
 }
 
 func createResult(msg *dns.Msg) (*Result, error) {
