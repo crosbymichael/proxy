@@ -9,12 +9,10 @@ import (
 	"syscall"
 )
 
-var server = "172.17.42.1:53"
-
-func tcpProxy(c chan *net.TCPConn, backend *Backend) {
+func tcpProxy(c chan *net.TCPConn, backend *Backend, dns string) {
 	group := &sync.WaitGroup{}
 	for conn := range c {
-		result, err := resolver.Resolve(backend.Query, server)
+		result, err := resolver.Resolve(backend.Query, dns)
 		if err != nil {
 			log.Logf(log.ERROR, "unable to reslove %s %s", backend.Query, err)
 			continue
@@ -57,7 +55,7 @@ func transfer(from, to *net.TCPConn, group *sync.WaitGroup) {
 	to.CloseRead()
 }
 
-func ProxyConnections(backend *Backend) error {
+func ProxyConnections(backend *Backend, dns string) error {
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: backend.IP, Port: backend.Port})
 	if err != nil {
 		return err
@@ -70,7 +68,7 @@ func ProxyConnections(backend *Backend) error {
 	)
 
 	for i := 0; i < backend.MaxConcurrent; i++ {
-		go tcpProxy(connections, backend)
+		go tcpProxy(connections, backend, dns)
 	}
 
 	// start the main event loop for the proxy

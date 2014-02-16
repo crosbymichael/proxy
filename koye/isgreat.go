@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
+	"github.com/crosbymichael/log"
 	"github.com/crosbymichael/proxy"
-	"log"
 	"os"
 	"sync"
 )
@@ -20,22 +20,30 @@ func init() {
 func main() {
 	f, err := os.Open(config)
 	if err != nil {
-		log.Fatal(err)
+		log.Logf(log.FATAL, "%s", err)
+		os.Exit(1)
 	}
 
 	config, err := proxy.LoadConfig(f)
 	if err != nil {
-		log.Fatal(err)
+		log.Logf(log.FATAL, "%s", err)
+		os.Exit(1)
 	}
 
 	group := &sync.WaitGroup{}
-	for _, backend := range config.Backends {
+	// TODO: send close to other backends
+	for name, backend := range config.Backends {
 		group.Add(1)
+
+		nv := name
+		bv := backend
 		go func() {
 			defer group.Done()
 
-			if err := proxy.ProxyConnections(backend); err != nil {
-				log.Fatal(err)
+			log.Logf(log.INFO, "starting proxy for %s", nv)
+			if err := proxy.ProxyConnections(bv, config.Dns); err != nil {
+				log.Logf(log.FATAL, "%s", err)
+				os.Exit(1)
 			}
 		}()
 	}
