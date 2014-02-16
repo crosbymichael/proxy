@@ -105,8 +105,9 @@ func createResult(msg *dns.Msg) (*Result, error) {
 }
 
 func gcInactiveItems() {
+	itemsRemoved := 0
 	for _ = range time.Tick(3 * time.Minute) {
-		log.Logf(log.DEBUG, "record gc started")
+		log.Logf(log.DEBUG, "gc started")
 		cacheLock.Lock()
 
 		for key, results := range cache {
@@ -114,12 +115,14 @@ func gcInactiveItems() {
 			for _, r := range results {
 				if r.Active {
 					cleaned = append(cleaned, r)
+				} else {
+					itemsRemoved++
 				}
 			}
 			cache[key] = cleaned
 		}
 		cacheLock.Unlock()
-		log.Logf(log.DEBUG, "record gc ended")
+		log.Logf(log.DEBUG, "gc ended removing %d items", itemsRemoved)
 	}
 }
 

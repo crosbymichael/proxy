@@ -7,9 +7,10 @@ import (
 )
 
 type Host struct {
-	Backends map[string]*Backend `toml:"backends"`
-	Dns      string              `toml:"dns"`
-	Log      string              `toml:"log"`
+	Backends        map[string]*Backend `toml:"backends"`
+	Dns             string              `toml:"dns"`
+	Log             string              `toml:"log"`
+	MaxListenErrors int                 `toml:"max_listen_errors"` // number of errors to accept before failing
 }
 
 type Backend struct {
