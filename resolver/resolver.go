@@ -121,8 +121,9 @@ func gcInactiveItems() {
 			}
 			cache[key] = cleaned
 		}
-		cacheLock.Unlock()
 		log.Logf(log.DEBUG, "gc ended removing %d items", itemsRemoved)
+		itemsRemoved = 0
+		cacheLock.Unlock()
 	}
 }
 

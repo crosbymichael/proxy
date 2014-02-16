@@ -48,9 +48,13 @@ func main() {
 		if err != nil {
 			fatal("failed to create proxy %s", err)
 		}
+		handler, err := proxy.NewHandler(config, bv)
+		if err != nil {
+			fatal("failed to create handler %s", err)
+		}
 		go func() {
 			defer group.Done()
-			if err := p.Run(); err != nil {
+			if err := p.Run(handler); err != nil {
 				fatal("running proxy %s", err)
 			}
 		}()

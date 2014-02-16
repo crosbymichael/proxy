@@ -11,6 +11,11 @@ type Host struct {
 	Dns             string              `toml:"dns"`
 	Log             string              `toml:"log"`
 	MaxListenErrors int                 `toml:"max_listen_errors"` // number of errors to accept before failing
+	Domains         map[string]*Domain  `toml:"domains"`
+}
+
+type Domain struct {
+	Query string `toml:"query"`
 }
 
 type Backend struct {
@@ -18,7 +23,6 @@ type Backend struct {
 	IP               net.IP `toml:"ip"`
 	Port             int    `toml:"port"`
 	Query            string `toml:"query"`
-	Records          string `toml:"records"`
 	MaxConcurrent    int    `toml:"max_concurrent"`
 	ConnectionBuffer int    `toml:"connection_buffer"`
 }
