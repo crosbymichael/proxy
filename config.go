@@ -11,6 +11,7 @@ type Host struct {
 	Dns             string              `toml:"dns"`
 	Log             string              `toml:"log"`
 	MaxListenErrors int                 `toml:"max_listen_errors"` // number of errors to accept before failing
+	Domains         map[string]*Domain  `toml:"domains"`
 }
 
 type Domain struct {
@@ -18,13 +19,12 @@ type Domain struct {
 }
 
 type Backend struct {
-	Proto            string             `toml:"proto"`
-	IP               net.IP             `toml:"ip"`
-	Port             int                `toml:"port"`
-	Query            string             `toml:"query"`
-	MaxConcurrent    int                `toml:"max_concurrent"`
-	ConnectionBuffer int                `toml:"connection_buffer"`
-	Domains          map[string]*Domain `toml:"domains"`
+	Proto            string `toml:"proto"`
+	IP               net.IP `toml:"ip"`
+	Port             int    `toml:"port"`
+	Query            string `toml:"query"`
+	MaxConcurrent    int    `toml:"max_concurrent"`
+	ConnectionBuffer int    `toml:"connection_buffer"`
 }
 
 func LoadConfig(r io.Reader) (*Host, error) {

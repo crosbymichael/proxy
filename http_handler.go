@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/crosbymichael/log"
 	"github.com/crosbymichael/proxy/resolver"
 	"net"
 	"net/http"
@@ -12,9 +13,20 @@ func newHttpHandler(host *Host, backend *Backend) (*httpHandler, error) {
 	if backend.Proto != "http" {
 		return nil, fmt.Errorf("invalid proto of http handler %d", backend.Proto)
 	}
-	domains := make(map[string]string, len(backend.Domains))
-	for name, d := range backend.Domains {
-		domains[name] = d.Query
+
+	n := len(host.Domains)
+	if n == 0 {
+		return nil, fmt.Errorf("no domains to register")
+	}
+
+	domains := make(map[string]string, n)
+	for name, d := range host.Domains {
+		log.Logf(log.INFO, "adding %s for http proxy", name)
+		var (
+			nv = name
+			qv = d.Query
+		)
+		domains[nv] = qv
 	}
 	return &httpHandler{
 		domains: domains,
