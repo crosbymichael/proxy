@@ -2,11 +2,7 @@ package proxy
 
 import (
 	"github.com/crosbymichael/log"
-	"github.com/crosbymichael/proxy/resolver"
-	"io"
 	"net"
-	"sync"
-	"syscall"
 )
 
 func newTcpPRoxy(host *Host, backend *Backend) (*tcpProxy, error) {
@@ -26,7 +22,7 @@ func (p *tcpProxy) Close() error {
 	return p.listener.Close()
 }
 
-func (p *tcpProxy) Run() (err error) {
+func (p *tcpProxy) Run(handler Handler) (err error) {
 	p.listener, err = net.ListenTCP("tcp", &net.TCPAddr{IP: p.backend.IP, Port: p.backend.Port})
 	if err != nil {
 		return err
@@ -39,7 +35,7 @@ func (p *tcpProxy) Run() (err error) {
 	)
 
 	for i := 0; i < p.backend.MaxConcurrent; i++ {
-		go proxyWorker(connections, p.backend, p.host.Dns)
+		go proxyWorker(connections, p.backend, p.host.Dns, handler)
 	}
 
 	for {
@@ -57,48 +53,10 @@ func (p *tcpProxy) Run() (err error) {
 	return nil
 }
 
-func proxyWorker(c chan *net.TCPConn, backend *Backend, dns string) {
-	group := &sync.WaitGroup{}
+func proxyWorker(c chan *net.TCPConn, backend *Backend, dns string, handler Handler) {
 	for conn := range c {
-		result, err := resolver.Resolve(backend.Query, dns)
-		if err != nil {
-			log.Logf(log.ERROR, "unable to reslove %s %s", backend.Query, err)
-			continue
-		}
-		if err := handleConnection(conn, group, result); err != nil {
+		if err := handler.HandleConn(conn); err != nil {
 			log.Logf(log.ERROR, "handle connection %s", err)
 		}
 	}
-}
-
-func handleConnection(conn *net.TCPConn, group *sync.WaitGroup, result *resolver.Result) error {
-	defer func() {
-		conn.CloseRead()
-		conn.CloseWrite()
-		conn.Close()
-	}()
-
-	dest, err := net.DialTCP("tcp", nil, &net.TCPAddr{IP: result.IP, Port: result.Port})
-	if err != nil {
-		return err
-	}
-	group.Add(2)
-
-	go transfer(conn, dest, group)
-	go transfer(dest, conn, group)
-
-	group.Wait()
-
-	return nil
-}
-
-func transfer(from, to *net.TCPConn, group *sync.WaitGroup) {
-	defer group.Done()
-	if _, err := io.Copy(to, from); err != nil {
-		if err, ok := err.(*net.OpError); ok && err.Err == syscall.EPIPE {
-			from.CloseWrite()
-		}
-		log.Logf(log.ERROR, "unexpected error type %s", err)
-	}
-	to.CloseRead()
 }
