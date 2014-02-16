@@ -1,6 +1,5 @@
-
 log = "stderr"
-dns = "172.17.42.1"
+dns = "172.17.42.1:53"
 
 [backends]
     [backends.redis]
@@ -11,4 +10,11 @@ dns = "172.17.42.1"
     records = "SRV"
     max_concurrent = 20
 
+    [backends.benchmark]
+    proto = "tcp"
+    ip = "192.168.56.9"
+    query = "benchmark.dev.docker."
+    port = 8081
+    records = "SRV"
+    max_concurrent = 100
     

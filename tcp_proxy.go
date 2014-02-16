@@ -1,65 +1,39 @@
 package proxy
 
 import (
-	"fmt"
-	"github.com/miekg/dns"
+	"github.com/crosbymichael/log"
+	"github.com/crosbymichael/proxy/resolver"
 	"io"
-	"log"
 	"net"
 	"sync"
 	"syscall"
 )
 
-var dnsClient = &dns.Client{}
-var server = "172.17.42.1:53"
-
-func tcpProxy(c chan *net.TCPConn, backend *Backend) {
-	var (
-		group = &sync.WaitGroup{}
-		msg   = &dns.Msg{}
-	)
-	msg.SetQuestion(backend.Query, dns.TypeSRV)
-
+func tcpProxy(c chan *net.TCPConn, backend *Backend, dns string) {
+	group := &sync.WaitGroup{}
 	for conn := range c {
-		if err := handleConnection(conn, group, msg); err != nil {
-			log.Println(err)
+		result, err := resolver.Resolve(backend.Query, dns)
+		if err != nil {
+			log.Logf(log.ERROR, "unable to reslove %s %s", backend.Query, err)
+			continue
+		}
+		if err := handleConnection(conn, group, result); err != nil {
+			log.Logf(log.ERROR, "handle connection %s", err)
 		}
 	}
 }
 
-func handleConnection(conn *net.TCPConn, group *sync.WaitGroup, msg *dns.Msg) error {
+func handleConnection(conn *net.TCPConn, group *sync.WaitGroup, result *resolver.Result) error {
 	defer func() {
 		conn.CloseRead()
 		conn.CloseWrite()
 		conn.Close()
 	}()
 
-	reply, _, err := dnsClient.Exchange(msg, server)
+	dest, err := net.DialTCP("tcp", nil, &net.TCPAddr{IP: result.IP, Port: result.Port})
 	if err != nil {
 		return err
 	}
-	if len(reply.Answer) == 0 {
-		return fmt.Errorf("no backends avaliable for %s", msg.Question[0])
-	}
-	first := reply.Answer[0]
-	v, ok := first.(*dns.SRV)
-	if !ok {
-		return fmt.Errorf("dns response not valid SRV record")
-	}
-	port := v.Port
-
-	extra := reply.Extra[0]
-	ev, ok := extra.(*dns.A)
-	if !ok {
-		return fmt.Errorf("dns extra not valid A record")
-	}
-	host := ev.A.String()
-
-	destination, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
-	if err != nil {
-		return err
-	}
-	dest := destination.(*net.TCPConn)
 	group.Add(2)
 
 	go transfer(conn, dest, group)
@@ -76,13 +50,12 @@ func transfer(from, to *net.TCPConn, group *sync.WaitGroup) {
 		if err, ok := err.(*net.OpError); ok && err.Err == syscall.EPIPE {
 			from.CloseWrite()
 		}
-		// TODO: report errors back
-		log.Println(err)
+		log.Logf(log.ERROR, "unexpected error type %s", err)
 	}
 	to.CloseRead()
 }
 
-func ProxyConnections(backend *Backend) error {
+func ProxyConnections(backend *Backend, dns string) error {
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: backend.IP, Port: backend.Port})
 	if err != nil {
 		return err
@@ -95,7 +68,7 @@ func ProxyConnections(backend *Backend) error {
 	)
 
 	for i := 0; i < backend.MaxConcurrent; i++ {
-		go tcpProxy(connections, backend)
+		go tcpProxy(connections, backend, dns)
 	}
 
 	// start the main event loop for the proxy
@@ -103,7 +76,7 @@ func ProxyConnections(backend *Backend) error {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
 			errorCount++
-			log.Println(err)
+			log.Logf(log.ERROR, "tcp accept error %s", err)
 			continue
 		}
 		connections <- conn
