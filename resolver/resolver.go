@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/crosbymichael/log"
+	"github.com/crosbymichael/proxy/stats"
 	"github.com/miekg/dns"
 	"net"
 	"sync"
@@ -106,7 +107,7 @@ func createResult(msg *dns.Msg) (*Result, error) {
 
 func gcInactiveItems() {
 	itemsRemoved := 0
-	for _ = range time.Tick(3 * time.Minute) {
+	for _ = range time.Tick(30 * time.Second) {
 		log.Logf(log.DEBUG, "gc started")
 		cacheLock.Lock()
 
@@ -122,6 +123,7 @@ func gcInactiveItems() {
 			cache[key] = cleaned
 		}
 		log.Logf(log.DEBUG, "gc ended removing %d items", itemsRemoved)
+		stats.Collect()
 		itemsRemoved = 0
 		cacheLock.Unlock()
 	}
