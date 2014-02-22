@@ -4,3 +4,4 @@ env:
 script:
     - go get -u
     - go build
+    - go test -v 
