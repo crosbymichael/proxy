@@ -2,4 +2,5 @@ image: crosbymichael/golang
 env:
     - GOPATH=/var/cache/drone
 script:
+    - go get -u
     - go build
