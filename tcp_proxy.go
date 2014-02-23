@@ -37,7 +37,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 	)
 
 	for i := 0; i < p.backend.MaxConcurrent; i++ {
-		go proxyWorker(connections, p.backend, p.host.Dns, handler)
+		go proxyWorker(connections, p.backend, handler)
 	}
 
 	for {
@@ -57,7 +57,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 	return nil
 }
 
-func proxyWorker(c chan *net.TCPConn, backend *Backend, dns string, handler Handler) {
+func proxyWorker(c chan *net.TCPConn, backend *Backend, handler Handler) {
 	for conn := range c {
 		start := time.Now()
 		if err := handler.HandleConn(conn); err != nil {

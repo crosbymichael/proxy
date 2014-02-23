@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/crosbymichael/proxy/resolver"
 	"io"
 	"net"
 )
@@ -27,12 +28,12 @@ func NewProxy(host *Host, backend *Backend) (proxy Proxy, err error) {
 	return
 }
 
-func NewHandler(host *Host, backend *Backend) (handler Handler, err error) {
+func NewHandler(host *Host, backend *Backend, rsv resolver.Resolver) (handler Handler, err error) {
 	switch backend.Proto {
 	case "tcp":
-		handler, err = newRawTcpHandler(host, backend)
+		handler, err = newRawTcpHandler(host, backend, rsv)
 	case "http":
-		handler, err = newHttpHandler(host, backend)
+		handler, err = newHttpHandler(host, backend, rsv)
 	default:
 		return nil, fmt.Errorf("unsupported protocol %s", backend.Proto)
 	}

@@ -9,6 +9,7 @@ dns = "172.17.42.1:53"
     port = 6379
     query = "redis.dev.docker."
     max_concurrent = 20
+    resolver = "srv"
 
     [backends.production]
     proto = "http"
@@ -20,3 +21,4 @@ dns = "172.17.42.1:53"
 
     [domains.localhost]
     query = "blog.dev.docker."
+    resolver = "srv"

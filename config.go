@@ -15,7 +15,8 @@ type Host struct {
 }
 
 type Domain struct {
-	Query string `toml:"query"`
+	Query    string `toml:"query"`
+	Resolver string `toml:"resolver"`
 }
 
 type Backend struct {
@@ -25,6 +26,7 @@ type Backend struct {
 	Query            string `toml:"query"`
 	MaxConcurrent    int    `toml:"max_concurrent"`
 	ConnectionBuffer int    `toml:"connection_buffer"`
+	Resolver         string `toml:"resolver"`
 }
 
 func LoadConfig(r io.Reader) (*Host, error) {

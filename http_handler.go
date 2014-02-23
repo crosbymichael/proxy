@@ -9,7 +9,7 @@ import (
 	"net/http/httputil"
 )
 
-func newHttpHandler(host *Host, backend *Backend) (*httpHandler, error) {
+func newHttpHandler(host *Host, backend *Backend, rsv resolver.Resolver) (*httpHandler, error) {
 	if backend.Proto != "http" {
 		return nil, fmt.Errorf("invalid proto of http handler %d", backend.Proto)
 	}
@@ -19,14 +19,18 @@ func newHttpHandler(host *Host, backend *Backend) (*httpHandler, error) {
 		return nil, fmt.Errorf("no domains to register")
 	}
 
-	domains := make(map[string]string, n)
+	domains := make(map[string]*domain, n)
 	for name, d := range host.Domains {
 		log.Logf(log.INFO, "adding %s for http proxy", name)
 		var (
 			nv = name
 			qv = d.Query
+			rv = d.Resolver
 		)
-		domains[nv] = qv
+		domains[nv] = &domain{
+			query:    qv,
+			resolver: resolver.Resolvers[rv],
+		}
 	}
 	return &httpHandler{
 		domains: domains,
@@ -36,7 +40,12 @@ func newHttpHandler(host *Host, backend *Backend) (*httpHandler, error) {
 
 type httpHandler struct {
 	host    *Host
-	domains map[string]string
+	domains map[string]*domain
+}
+
+type domain struct {
+	query    string
+	resolver resolver.Resolver
 }
 
 func (p *httpHandler) HandleConn(rawConn net.Conn) error {
@@ -62,7 +71,7 @@ func (p *httpHandler) HandleConn(rawConn net.Conn) error {
 		return fmt.Errorf("host %s is not registered with this proxy", request.Host)
 	}
 
-	result, err := resolver.Resolve(query, p.host.Dns)
+	result, err := query.resolver.Resolve(query.query)
 	if err != nil {
 		return err
 	}

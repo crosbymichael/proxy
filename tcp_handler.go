@@ -10,16 +10,18 @@ import (
 	"syscall"
 )
 
-func newRawTcpHandler(host *Host, backend *Backend) (*tcpHandler, error) {
+func newRawTcpHandler(host *Host, backend *Backend, rsv resolver.Resolver) (*tcpHandler, error) {
 	return &tcpHandler{
-		host:    host,
-		backend: backend,
+		host:     host,
+		backend:  backend,
+		resolver: rsv,
 	}, nil
 }
 
 type tcpHandler struct {
-	host    *Host
-	backend *Backend
+	host     *Host
+	backend  *Backend
+	resolver resolver.Resolver
 }
 
 func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
@@ -34,7 +36,7 @@ func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
 		conn.Close()
 	}()
 
-	result, err := resolver.Resolve(p.backend.Query, p.host.Dns)
+	result, err := p.resolver.Resolve(p.backend.Query)
 	if err != nil {
 		return err
 	}
