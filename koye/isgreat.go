@@ -26,6 +26,9 @@ func fatal(format string, err error) {
 }
 
 func registerResolvers(host *proxy.Host) error {
+	if err := resolver.AddResolver("ip", resolver.NewIpResolver()); err != nil {
+		return err
+	}
 	if host.Dns != "" {
 		if err := resolver.AddResolver("srv", resolver.NewSrvResolver(host.Dns)); err != nil {
 			return err
