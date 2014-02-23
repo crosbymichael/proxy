@@ -20,6 +20,6 @@ dns = "172.17.42.1:53"
 [domains]
 
     [domains.localhost]
-    query = "172.17.0.2:8080"
-    resolver = "ip"
+    query = "blog.dev.docker."
+    resolver = "srv"
 

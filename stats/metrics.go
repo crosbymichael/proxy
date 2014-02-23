@@ -11,9 +11,8 @@ import (
 // high level system metrics for the entire proxy
 // users can specify more fine grained metrics for http, tcp, etc...
 var (
-	RequestCount      metrics.Counter // monitor the over number of requests
-	RequestErrorCount metrics.Counter // monitor the number of request errors
-	ReqeustTimer      metrics.Timer   // monitor request times
+	ReqeustTimer      metrics.Timer // monitor request times
+	ActiveConnections metrics.Counter
 
 	GoRoutines  metrics.Gauge // monitor the number of goroutines
 	MemoryGauge metrics.Gauge // monitor the memory usage
@@ -21,11 +20,8 @@ var (
 )
 
 func init() {
-	RequestCount = metrics.NewCounter()
-	metrics.Register("koye-requests", RequestCount)
-
-	RequestErrorCount = metrics.NewCounter()
-	metrics.Register("koye-requests-errors", RequestErrorCount)
+	ActiveConnections = metrics.NewCounter()
+	metrics.Register("koye-active-connections", ActiveConnections)
 
 	GoRoutines = metrics.NewGauge()
 	metrics.Register("koye-goroutines", GoRoutines)

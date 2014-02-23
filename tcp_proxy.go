@@ -42,9 +42,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 
 	for {
 		conn, err := p.listener.AcceptTCP()
-		stats.RequestCount.Inc(1)
 		if err != nil {
-			stats.RequestErrorCount.Inc(1)
 			errorCount++
 			if errorCount > p.host.MaxListenErrors {
 				return err
@@ -59,10 +57,12 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 
 func proxyWorker(c chan *net.TCPConn, backend *Backend, handler Handler) {
 	for conn := range c {
+		stats.ActiveConnections.Inc(1)
 		start := time.Now()
 		if err := handler.HandleConn(conn); err != nil {
 			log.Logf(log.ERROR, "handle connection %s", err)
 		}
 		stats.ReqeustTimer.Update(time.Now().Sub(start))
+		stats.ActiveConnections.Dec(1)
 	}
 }
