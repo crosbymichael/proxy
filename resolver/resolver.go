@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/crosbymichael/log"
-	"github.com/crosbymichael/proxy/stats"
 	"github.com/miekg/dns"
 	"net"
 	"sync"
@@ -25,6 +24,10 @@ type Result struct {
 	TTL       int
 	Active    bool
 	TimeAdded time.Time
+}
+
+type Resolver interface {
+	Resolve(query, server string) (*Result, error)
 }
 
 func init() {
@@ -123,7 +126,6 @@ func gcInactiveItems() {
 			cache[key] = cleaned
 		}
 		log.Logf(log.DEBUG, "gc ended removing %d items", itemsRemoved)
-		stats.Collect()
 		itemsRemoved = 0
 		cacheLock.Unlock()
 	}

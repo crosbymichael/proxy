@@ -2,7 +2,9 @@ package proxy
 
 import (
 	"github.com/crosbymichael/log"
+	"github.com/crosbymichael/proxy/stats"
 	"net"
+	"time"
 )
 
 func newTcpPRoxy(host *Host, backend *Backend) (*tcpProxy, error) {
@@ -40,7 +42,9 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 
 	for {
 		conn, err := p.listener.AcceptTCP()
+		stats.RequestCount.Inc(1)
 		if err != nil {
+			stats.RequestErrorCount.Inc(1)
 			errorCount++
 			if errorCount > p.host.MaxListenErrors {
 				return err
@@ -55,8 +59,10 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 
 func proxyWorker(c chan *net.TCPConn, backend *Backend, dns string, handler Handler) {
 	for conn := range c {
+		start := time.Now()
 		if err := handler.HandleConn(conn); err != nil {
 			log.Logf(log.ERROR, "handle connection %s", err)
 		}
+		stats.ReqeustTimer.Update(time.Now().Sub(start))
 	}
 }

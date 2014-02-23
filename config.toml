@@ -10,13 +10,6 @@ dns = "172.17.42.1:53"
     query = "redis.dev.docker."
     max_concurrent = 20
 
-    [backends.benchmark]
-    proto = "tcp"
-    ip = "192.168.56.9"
-    query = "benchmark.dev.docker."
-    port = 8081
-    max_concurrent = 100
-
     [backends.production]
     proto = "http"
     ip = "0.0.0.0"

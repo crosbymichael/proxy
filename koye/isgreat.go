@@ -4,8 +4,10 @@ import (
 	"flag"
 	"github.com/crosbymichael/log"
 	"github.com/crosbymichael/proxy"
+	"github.com/crosbymichael/proxy/stats"
 	"os"
 	"sync"
+	"time"
 )
 
 var (
@@ -32,6 +34,9 @@ func main() {
 	if err != nil {
 		fatal("reading config file %s", err)
 	}
+
+	log.Logf(log.DEBUG, "starting metrics")
+	stats.Collect(30*time.Second, true)
 
 	log.Logf(log.INFO, "configuration loaded")
 	group := &sync.WaitGroup{}
