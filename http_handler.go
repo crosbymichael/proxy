@@ -27,9 +27,13 @@ func newHttpHandler(host *Host, backend *Backend, rsv resolver.Resolver) (*httpH
 			qv = d.Query
 			rv = d.Resolver
 		)
+		rsv, err := resolver.GetResolver(rv)
+		if err != nil {
+			return nil, err
+		}
 		domains[nv] = &domain{
 			query:    qv,
-			resolver: resolver.Resolvers[rv],
+			resolver: rsv,
 		}
 	}
 	return &httpHandler{

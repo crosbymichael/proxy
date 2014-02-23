@@ -6,10 +6,11 @@ import (
 )
 
 var (
-	ErrResolverExists  = errors.New("resolver already exists for key")
-	ErrNoRecordInCache = errors.New("no active result in cache")
+	ErrResolverExists   = errors.New("resolver already exists for key")
+	ErrResolverNotExist = errors.New("resolver for name does not exist")
+	ErrNoRecordInCache  = errors.New("no active result in cache")
 
-	Resolvers map[string]Resolver
+	resolvers map[string]Resolver
 )
 
 // Result represents the service address for a container
@@ -26,13 +27,21 @@ type Resolver interface {
 
 // AddResolver adds a new resolver for a given key
 func AddResolver(name string, r Resolver) error {
-	if Resolvers == nil {
-		Resolvers = make(map[string]Resolver)
+	if resolvers == nil {
+		resolvers = make(map[string]Resolver)
 	}
-	if _, exists := Resolvers[name]; exists {
+	if _, exists := resolvers[name]; exists {
 		return ErrResolverExists
 	}
-	Resolvers[name] = r
+	resolvers[name] = r
 
 	return nil
+}
+
+func GetResolver(name string) (Resolver, error) {
+	r, exists := resolvers[name]
+	if !exists {
+		return nil, ErrResolverNotExist
+	}
+	return r, nil
 }

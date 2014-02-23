@@ -20,8 +20,8 @@ func init() {
 	flag.Parse()
 }
 
-func fatal(format string, err error) {
-	log.Logf(log.FATAL, format, err)
+func fatal(format string, v ...interface{}) {
+	log.Logf(log.FATAL, format, v...)
 	os.Exit(1)
 }
 
@@ -68,7 +68,10 @@ func main() {
 		if err != nil {
 			fatal("failed to create proxy %s", err)
 		}
-		rsv := resolver.Resolvers[bv.Resolver]
+		rsv, err := resolver.GetResolver(bv.Resolver)
+		if err != nil && !(err == resolver.ErrResolverNotExist && bv.Proto == "http") {
+			fatal("%s %s", err, bv.Resolver)
+		}
 
 		handler, err := proxy.NewHandler(config, bv, rsv)
 		if err != nil {
