@@ -17,7 +17,7 @@ type Handler interface {
 
 func NewProxy(host *Host, backend *Backend) (proxy Proxy, err error) {
 	switch backend.Proto {
-	case "tcp", "http":
+	case "tcp":
 		proxy, err = newTcpPRoxy(host, backend)
 	case "udp":
 		fallthrough
@@ -31,8 +31,6 @@ func NewHandler(host *Host, backend *Backend) (handler Handler, err error) {
 	switch backend.Proto {
 	case "tcp":
 		handler, err = newRawTcpHandler(host, backend)
-	case "http":
-		handler, err = newHttpHandler(host, backend)
 	default:
 		return nil, fmt.Errorf("unsupported protocol %s", backend.Proto)
 	}

@@ -2,8 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/crosbymichael/log"
-	"github.com/crosbymichael/proxy/resolver"
 	"io"
 	"net"
 	"sync"
@@ -34,12 +32,7 @@ func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
 		conn.Close()
 	}()
 
-	result, err := resolver.Resolve(p.backend.Query, p.host.Dns)
-	if err != nil {
-		return err
-	}
-
-	dest, err := net.DialTCP("tcp", nil, &net.TCPAddr{IP: result.IP, Port: result.Port})
+	dest, err := net.DialTCP("tcp", nil, &net.TCPAddr{IP: p.backend.IP, Port: p.backend.Port})
 	if err != nil {
 		return err
 	}
@@ -57,11 +50,13 @@ func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
 
 func transfer(from, to *net.TCPConn, group *sync.WaitGroup) {
 	defer group.Done()
+
 	if _, err := io.Copy(to, from); err != nil {
 		if err, ok := err.(*net.OpError); ok && err.Err == syscall.EPIPE {
 			from.CloseWrite()
 		}
-		log.Logf(log.ERROR, "unexpected error type %s", err)
+		logger.Errorf("unexpected error type %s", err)
 	}
+
 	to.CloseRead()
 }

@@ -30,11 +30,6 @@ dns = "172.17.42.1:53"
     ip = "0.0.0.0"
     port = 80
     max_concurrent = 100
-
-[domains]
-
-    [domains.localhost]
-    query = "blog.dev.docker."
 `
 
 func TestParseConfig(t *testing.T) {

@@ -2,14 +2,16 @@ package main
 
 import (
 	"flag"
-	"github.com/crosbymichael/log"
-	"github.com/crosbymichael/proxy"
 	"os"
 	"sync"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/crosbymichael/proxy"
 )
 
 var (
 	config string
+	logger = logrus.New()
 )
 
 func init() {
@@ -17,24 +19,21 @@ func init() {
 	flag.Parse()
 }
 
-func fatal(format string, err error) {
-	log.Logf(log.FATAL, format, err)
-	os.Exit(1)
-}
-
 func main() {
 	f, err := os.Open(config)
 	if err != nil {
-		fatal("open config file %s", err)
+		logger.Fatalf("open config file %s", err)
 	}
 
 	config, err := proxy.LoadConfig(f)
 	if err != nil {
-		fatal("reading config file %s", err)
+		logger.Fatalf("reading config file %s", err)
 	}
+	f.Close()
 
-	log.Logf(log.INFO, "configuration loaded")
+	logger.Infof("configuration loaded")
 	group := &sync.WaitGroup{}
+
 	// TODO: send close to other backends
 	for name, backend := range config.Backends {
 		group.Add(1)
@@ -43,22 +42,29 @@ func main() {
 			nv = name
 			bv = backend
 		)
-		log.Logf(log.INFO, "starting proxy %s for %s", bv.Proto, nv)
+
+		logger.Infof("starting proxy %s for %s", bv.Proto, nv)
+
 		p, err := proxy.NewProxy(config, bv)
 		if err != nil {
-			fatal("failed to create proxy %s", err)
+			logger.Fatalf("failed to create proxy %s", err)
 		}
+
 		handler, err := proxy.NewHandler(config, bv)
 		if err != nil {
-			fatal("failed to create handler %s", err)
+			logger.Fatalf("failed to create handler %s", err)
 		}
+
 		go func() {
 			defer group.Done()
+
 			if err := p.Run(handler); err != nil {
-				fatal("running proxy %s", err)
+				logger.Fatalf("running proxy %s", err)
 			}
 		}()
 	}
+
 	group.Wait()
-	log.Logf(log.INFO, "proxy going down")
+
+	logger.Infof("proxy going down")
 }

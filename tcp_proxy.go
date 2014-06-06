@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"github.com/crosbymichael/log"
 	"net"
 )
 
@@ -23,7 +22,7 @@ func (p *tcpProxy) Close() error {
 }
 
 func (p *tcpProxy) Run(handler Handler) (err error) {
-	p.listener, err = net.ListenTCP("tcp", &net.TCPAddr{IP: p.backend.IP, Port: p.backend.Port})
+	p.listener, err = net.ListenTCP("tcp", &net.TCPAddr{IP: p.backend.ListenIP, Port: p.backend.ListenPort})
 	if err != nil {
 		return err
 	}
@@ -35,7 +34,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 	)
 
 	for i := 0; i < p.backend.MaxConcurrent; i++ {
-		go proxyWorker(connections, p.backend, p.host.Dns, handler)
+		go proxyWorker(connections, p.backend, handler)
 	}
 
 	for {
@@ -45,18 +44,21 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 			if errorCount > p.host.MaxListenErrors {
 				return err
 			}
-			log.Logf(log.ERROR, "tcp accept error %s", err)
+
+			logger.Errorf("tcp accept error %s", err)
 			continue
 		}
+
 		connections <- conn
 	}
+
 	return nil
 }
 
-func proxyWorker(c chan *net.TCPConn, backend *Backend, dns string, handler Handler) {
+func proxyWorker(c chan *net.TCPConn, backend *Backend, handler Handler) {
 	for conn := range c {
 		if err := handler.HandleConn(conn); err != nil {
-			log.Logf(log.ERROR, "handle connection %s", err)
+			logger.Errorf("handle connection %s", err)
 		}
 	}
 }

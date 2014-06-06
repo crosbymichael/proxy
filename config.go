@@ -1,28 +1,24 @@
 package proxy
 
 import (
-	"github.com/BurntSushi/toml"
 	"io"
 	"net"
+
+	"github.com/BurntSushi/toml"
 )
 
 type Host struct {
 	Backends        map[string]*Backend `toml:"backends"`
-	Dns             string              `toml:"dns"`
 	Log             string              `toml:"log"`
 	MaxListenErrors int                 `toml:"max_listen_errors"` // number of errors to accept before failing
-	Domains         map[string]*Domain  `toml:"domains"`
-}
-
-type Domain struct {
-	Query string `toml:"query"`
 }
 
 type Backend struct {
 	Proto            string `toml:"proto"`
+	ListenIP         net.IP `toml:"listen_ip"`
+	ListenPort       int    `toml:"listen_port"`
 	IP               net.IP `toml:"ip"`
 	Port             int    `toml:"port"`
-	Query            string `toml:"query"`
 	MaxConcurrent    int    `toml:"max_concurrent"`
 	ConnectionBuffer int    `toml:"connection_buffer"`
 }
