@@ -19,7 +19,7 @@ dns = "172.17.42.1:53"
 
 [domains]
 
-    [domains.localhost]
-    query = "blog.dev.docker."
-    resolver = "srv"
-
+    [domains.rethinkdb]
+    domain = "localhost"
+    query = "172.17.0.7:8080"
+    resolver = "ip"

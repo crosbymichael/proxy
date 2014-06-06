@@ -23,7 +23,7 @@ func newHttpHandler(host *Host, backend *Backend, rsv resolver.Resolver) (*httpH
 	for name, d := range host.Domains {
 		log.Logf(log.INFO, "adding %s for http proxy", name)
 		var (
-			nv = name
+			nv = d.Domain
 			qv = d.Query
 			rv = d.Resolver
 		)

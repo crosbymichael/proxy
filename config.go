@@ -15,6 +15,7 @@ type Host struct {
 }
 
 type Domain struct {
+	Domain   string `toml:"domain"`
 	Query    string `toml:"query"`
 	Resolver string `toml:"resolver"`
 }
