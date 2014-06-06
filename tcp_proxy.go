@@ -46,6 +46,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 			}
 
 			logger.Errorf("tcp accept error %s", err)
+
 			continue
 		}
 

@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 	"syscall"
+	"time"
 )
 
 func newRawTcpHandler(host *Host, backend *Backend) (*tcpHandler, error) {
@@ -26,10 +27,14 @@ func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
 		return fmt.Errorf("invalid net.Conn, not tcp")
 	}
 
+	start := time.Now()
+	tcpLiveConnections.Inc(1)
+
 	defer func() {
 		conn.CloseRead()
 		conn.CloseWrite()
 		conn.Close()
+		tcpLiveConnections.Dec(1)
 	}()
 
 	dest, err := net.DialTCP("tcp", nil, &net.TCPAddr{IP: p.backend.IP, Port: p.backend.Port})
@@ -44,6 +49,8 @@ func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
 	go transfer(dest, conn, group)
 
 	group.Wait()
+
+	tcpRequestTimer.UpdateSince(start)
 
 	return nil
 }

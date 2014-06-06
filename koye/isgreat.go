@@ -64,6 +64,8 @@ func main() {
 		}()
 	}
 
+	go proxy.CollectStats()
+
 	group.Wait()
 
 	logger.Infof("proxy going down")
