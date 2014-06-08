@@ -21,6 +21,9 @@ type Backend struct {
 	Port             int    `toml:"port"`
 	MaxConcurrent    int    `toml:"max_concurrent"`
 	ConnectionBuffer int    `toml:"connection_buffer"`
+	Cert             string `toml:"cert"`
+	Key              string `toml:"key"`
+	CA               string `toml:"ca"`
 }
 
 func LoadConfig(r io.Reader) (*Host, error) {
