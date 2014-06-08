@@ -1,33 +1,18 @@
 package proxy
 
-import (
-	"crypto/tls"
-	"net"
-)
+import "net"
 
 func newTcpPRoxy(host *Host, backend *Backend) (*tcpProxy, error) {
-	p := &tcpProxy{
+	return &tcpProxy{
 		host:    host,
 		backend: backend,
-	}
-
-	if backend.Cert != "" {
-		config, err := createTLSConfig(backend.Cert, backend.Key, backend.CA)
-		if err != nil {
-			return nil, err
-		}
-
-		p.config = config
-	}
-
-	return p, nil
+	}, nil
 }
 
 type tcpProxy struct {
 	backend  *Backend
 	host     *Host
 	listener net.Listener
-	config   *tls.Config
 }
 
 func (p *tcpProxy) Close() error {
@@ -40,10 +25,6 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 		return err
 	}
 	defer p.Close()
-
-	if p.config != nil {
-		p.listener = tls.NewListener(p.listener, p.config)
-	}
 
 	var (
 		errorCount  int

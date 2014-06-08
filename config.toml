@@ -10,3 +10,4 @@ log = "stderr"
     max_concurrent = 100
     cert = "/Users/michael/certs/server-cert.pem"
     key = "/Users/michael/certs/server-key.pem"
+    ca = "/Users/michael/certs/ca.pem"
