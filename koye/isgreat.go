@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"sync"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/crosbymichael/proxy"
@@ -19,6 +20,30 @@ func init() {
 	flag.Parse()
 }
 
+func setRlimit(host *proxy.Host) error {
+	if host.Rlimit > 0 {
+		var limit syscall.Rlimit
+		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+			return err
+		}
+
+		logger.WithFields(logrus.Fields{
+			"current": limit.Cur,
+			"max":     limit.Max,
+		}).Info("rlimits")
+
+		if limit.Cur < host.Rlimit {
+			limit.Cur = host.Rlimit
+
+			if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	f, err := os.Open(config)
 	if err != nil {
@@ -31,7 +56,12 @@ func main() {
 	}
 	f.Close()
 
+	if err := setRlimit(config); err != nil {
+		logger.Fatalf("setting rlimit %s", err)
+	}
+
 	logger.Infof("configuration loaded")
+
 	group := &sync.WaitGroup{}
 
 	// TODO: send close to other backends
@@ -42,6 +72,7 @@ func main() {
 			nv = name
 			bv = backend
 		)
+		bv.Name = nv
 
 		logger.Infof("starting proxy %s for %s", bv.Proto, nv)
 
@@ -61,6 +92,8 @@ func main() {
 			if err := p.Run(handler); err != nil {
 				logger.Fatalf("running proxy %s", err)
 			}
+
+			handler.Close()
 		}()
 	}
 
