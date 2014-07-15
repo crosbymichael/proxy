@@ -71,6 +71,7 @@ func main() {
 			nv = name
 			bv = backend
 		)
+		bv.Name = nv
 
 		logger.Infof("starting proxy %s for %s", bv.Proto, nv)
 
@@ -90,6 +91,8 @@ func main() {
 			if err := p.Run(handler); err != nil {
 				logger.Fatalf("running proxy %s", err)
 			}
+
+			handler.Close()
 		}()
 	}
 

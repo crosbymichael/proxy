@@ -1,10 +1,9 @@
 package proxy
 
 import (
+	"log"
 	"os"
 	"time"
-
-	"log"
 
 	"github.com/rcrowley/go-metrics"
 )

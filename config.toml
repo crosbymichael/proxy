@@ -1,4 +1,5 @@
 log = "stderr"
+docker = "http://192.168.56.101:2375"
 
 [backends]
     [backends.redis]
@@ -8,6 +9,12 @@ log = "stderr"
     ip = "127.0.0.1"
     port = 6378
     max_concurrent = 100
-    #cert = "/Users/michael/certs/server-cert.pem"
-    #key = "/Users/michael/certs/server-key.pem"
-    #ca = "/Users/michael/certs/ca.pem"
+
+    [backends.redisd]
+    proto = "tcp"
+    listen_ip = "127.0.0.1"
+    listen_port = 6370
+    ip = "192.168.56.101"
+    port = 8989
+    max_concurrent = 100
+    container = "redisd"

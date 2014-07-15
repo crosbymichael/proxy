@@ -11,9 +11,11 @@ type Host struct {
 	Backends        map[string]*Backend `toml:"backends"`
 	Log             string              `toml:"log"`
 	MaxListenErrors int                 `toml:"max_listen_errors"` // number of errors to accept before failing
+	Docker          string              `toml:"docker"`
 }
 
 type Backend struct {
+	Name             string
 	Proto            string `toml:"proto"`
 	ListenIP         net.IP `toml:"listen_ip"`
 	ListenPort       int    `toml:"listen_port"`
@@ -24,6 +26,7 @@ type Backend struct {
 	Cert             string `toml:"cert"`
 	Key              string `toml:"key"`
 	CA               string `toml:"ca"`
+	Container        string `toml:"container"`
 }
 
 func LoadConfig(r io.Reader) (*Host, error) {
@@ -31,5 +34,6 @@ func LoadConfig(r io.Reader) (*Host, error) {
 	if _, err := toml.DecodeReader(r, &config); err != nil {
 		return nil, err
 	}
+
 	return config, nil
 }
