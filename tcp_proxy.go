@@ -1,25 +1,57 @@
 package proxy
 
-import "net"
+import (
+	"crypto/tls"
+	"fmt"
+	"net"
+	"sync"
+)
 
-func newTcpPRoxy(host *Host, backend *Backend) (*tcpProxy, error) {
+type tcpProxy struct {
+	backend     *Backend
+	listener    net.Listener
+	connections chan net.Conn
+	group       *sync.WaitGroup
+	started     bool
+}
+
+func newTcpPRoxy(backend *Backend) (*tcpProxy, error) {
 	return &tcpProxy{
-		host:    host,
-		backend: backend,
+		backend:     backend,
+		connections: make(chan net.Conn, backend.ConnectionBuffer),
+		group:       &sync.WaitGroup{},
 	}, nil
 }
 
-type tcpProxy struct {
-	backend  *Backend
-	host     *Host
-	listener net.Listener
-}
-
 func (p *tcpProxy) Close() error {
-	return p.listener.Close()
+	close(p.connections)
+
+	p.group.Wait()
+
+	err := p.listener.Close()
+	p.started = false
+
+	return err
 }
 
-func (p *tcpProxy) Run(handler Handler) (err error) {
+func (p *tcpProxy) Backend() *Backend {
+	return p.backend
+}
+
+func (p *tcpProxy) Start() (err error) {
+	if p.started {
+		return fmt.Errorf("proxy has already been started")
+	}
+
+	p.started = true
+
+	var config *tls.Config
+	if p.backend.Cert != "" {
+		if config, err = createTLSConfig(p.backend.Cert, p.backend.Key, p.backend.CA); err != nil {
+			return err
+		}
+	}
+
 	if p.listener, err = net.ListenTCP("tcp", &net.TCPAddr{
 		IP:   p.backend.ListenIP,
 		Port: p.backend.ListenPort,
@@ -27,25 +59,23 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 		return err
 	}
 
-	var (
-		errorCount  int
-		connections = make(chan net.Conn, p.backend.ConnectionBuffer)
-	)
-
 	for i := 0; i < p.backend.MaxConcurrent; i++ {
-		go proxyWorker(connections, p.backend, handler)
+		logger.Infof("starting worker %d", i)
+
+		group.Add(1)
+
+		woker := newWorker(p, docker, config)
+		go worker.work()
 	}
 
 	for {
+		if !p.started {
+			break
+		}
+
 		conn, err := p.listener.Accept()
 		if err != nil {
-			errorCount++
-			if errorCount > p.host.MaxListenErrors {
-				p.Close()
-				return err
-			}
-
-			logger.Errorf("tcp accept error %s", err)
+			logger.WithField("error", err).Errorf("tcp accept")
 
 			continue
 		}
@@ -53,15 +83,5 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 		connections <- conn
 	}
 
-	p.Close()
-
 	return nil
-}
-
-func proxyWorker(c chan net.Conn, backend *Backend, handler Handler) {
-	for conn := range c {
-		if err := handler.HandleConn(conn); err != nil {
-			logger.Errorf("handle connection %s", err)
-		}
-	}
 }

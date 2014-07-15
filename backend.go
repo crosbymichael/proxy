@@ -1,23 +1,6 @@
 package proxy
 
-import (
-	"io"
-	"net"
-
-	"github.com/BurntSushi/toml"
-)
-
-type Host struct {
-	Backends map[string]*Backend `toml:"backends"`
-	// Where to log output to
-	Log string `toml:"log"`
-	// Number of errors to accept before failing
-	MaxListenErrors int `toml:"max_listen_errors"`
-	// Docker api endpoint to start containers on
-	Docker string `toml:"docker"`
-	// Rlimit to set
-	Rlimit uint64 `toml:"rlimit"`
-}
+import "net"
 
 type Backend struct {
 	// Name of the backend populated by the internal code
@@ -46,13 +29,4 @@ type Backend struct {
 	Container string `toml:"container"`
 	// Seconds to stop a container on inactivity
 	ContainerStopTimeout int `toml:"container_stop_timeout"`
-}
-
-func LoadConfig(r io.Reader) (*Host, error) {
-	var config *Host
-	if _, err := toml.DecodeReader(r, &config); err != nil {
-		return nil, err
-	}
-
-	return config, nil
 }

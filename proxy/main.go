@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"os"
 	"sync"
 	"syscall"
 
@@ -11,17 +10,23 @@ import (
 )
 
 var (
-	config string
+	docker  string
+	irlimit int64
+
 	logger = logrus.New()
 )
 
 func init() {
-	flag.StringVar(&config, "c", "config.toml", "config file path")
+	flag.StringVar(&docker, "docker", "unix:///var/run/docker.sock", "docker api endpoint")
+	flag.Int64Var(&irlimit, "rlimit", 0, "rlimit")
+
 	flag.Parse()
 }
 
-func setRlimit(host *proxy.Host) error {
-	if host.Rlimit > 0 {
+func setRlimit() error {
+	rlimit := uint64(irlimit)
+
+	if rlimit > 0 {
 		var limit syscall.Rlimit
 		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
 			return err
@@ -32,8 +37,8 @@ func setRlimit(host *proxy.Host) error {
 			"max":     limit.Max,
 		}).Info("rlimits")
 
-		if limit.Cur < host.Rlimit {
-			limit.Cur = host.Rlimit
+		if limit.Cur < rlimit {
+			limit.Cur = rlimit
 
 			if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
 				return err
@@ -45,22 +50,9 @@ func setRlimit(host *proxy.Host) error {
 }
 
 func main() {
-	f, err := os.Open(config)
-	if err != nil {
-		logger.Fatalf("open config file %s", err)
-	}
-
-	config, err := proxy.LoadConfig(f)
-	if err != nil {
-		logger.Fatalf("reading config file %s", err)
-	}
-	f.Close()
-
-	if err := setRlimit(config); err != nil {
+	if err := setRlimit(); err != nil {
 		logger.Fatalf("setting rlimit %s", err)
 	}
-
-	logger.Infof("configuration loaded")
 
 	group := &sync.WaitGroup{}
 
