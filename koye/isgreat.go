@@ -4,10 +4,13 @@ import (
 	"flag"
 	"os"
 	"sync"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/crosbymichael/proxy"
 )
+
+const MAX_RLIMIT = 10032
 
 var (
 	config string
@@ -17,6 +20,28 @@ var (
 func init() {
 	flag.StringVar(&config, "c", "config.toml", "config file path")
 	flag.Parse()
+}
+
+func setRlimit() error {
+	var limit syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+		return err
+	}
+
+	logger.WithFields(logrus.Fields{
+		"current": limit.Cur,
+		"max":     limit.Max,
+	}).Info("rlimits")
+
+	if limit.Cur < MAX_RLIMIT {
+		limit.Cur = MAX_RLIMIT
+
+		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func main() {
@@ -30,6 +55,10 @@ func main() {
 		logger.Fatalf("reading config file %s", err)
 	}
 	f.Close()
+
+	if err := setRlimit(); err != nil {
+		logger.Fatalf("setting rlimit %s", err)
+	}
 
 	logger.Infof("configuration loaded")
 	group := &sync.WaitGroup{}
