@@ -1,10 +1,29 @@
 package proxy
 
 import (
+	"io"
 	"net"
+	"sync"
+	"syscall"
 	"time"
 )
 
+// transfer transfers bytes from one tcp connection to another
+func transfer(from, to *tcpConn, group *sync.WaitGroup) {
+	if _, err := io.Copy(to, from); err != nil {
+		if err, ok := err.(*net.OpError); ok && err.Err == syscall.EPIPE {
+			from.CloseWrite()
+		}
+
+		logger.Errorf("unexpected error type %s", err)
+	}
+
+	to.CloseRead()
+
+	group.Done()
+}
+
+// tcpConn is used to handle normal and tls communication
 type tcpConn struct {
 	readCon  net.Conn
 	closeCon *net.TCPConn
