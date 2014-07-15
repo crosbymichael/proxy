@@ -9,6 +9,7 @@ import (
 type Proxy interface {
 	io.Closer
 	Run(Handler) error
+	Backend() *Backend
 }
 
 type Handler interface {
