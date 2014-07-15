@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"net/http"
+	"os"
+	"os/signal"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
@@ -69,6 +71,17 @@ func main() {
 	}
 
 	s := server.New(logger, client)
+	go func() {
+		sigc := make(chan os.Signal, 10)
+		signal.Notify(sigc, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt)
+
+		for _ = range sigc {
+			if err := s.Close(); err != nil {
+				logger.WithField("error", err).Fatal("closing server")
+			}
+			os.Exit(0)
+		}
+	}()
 	go proxy.CollectStats()
 
 	if err := http.ListenAndServe(":3131", s); err != nil {
