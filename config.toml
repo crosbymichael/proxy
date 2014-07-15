@@ -8,3 +8,6 @@ log = "stderr"
     ip = "127.0.0.1"
     port = 6378
     max_concurrent = 100
+    cert = "/Users/michael/certs/server-cert.pem"
+    key = "/Users/michael/certs/server-key.pem"
+    ca = "/Users/michael/certs/ca.pem"

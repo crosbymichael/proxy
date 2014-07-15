@@ -1,8 +1,6 @@
 package proxy
 
-import (
-	"net"
-)
+import "net"
 
 func newTcpPRoxy(host *Host, backend *Backend) (*tcpProxy, error) {
 	return &tcpProxy{
@@ -14,7 +12,7 @@ func newTcpPRoxy(host *Host, backend *Backend) (*tcpProxy, error) {
 type tcpProxy struct {
 	backend  *Backend
 	host     *Host
-	listener *net.TCPListener
+	listener net.Listener
 }
 
 func (p *tcpProxy) Close() error {
@@ -30,7 +28,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 
 	var (
 		errorCount  int
-		connections = make(chan *net.TCPConn, p.backend.ConnectionBuffer)
+		connections = make(chan net.Conn, p.backend.ConnectionBuffer)
 	)
 
 	for i := 0; i < p.backend.MaxConcurrent; i++ {
@@ -38,7 +36,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 	}
 
 	for {
-		conn, err := p.listener.AcceptTCP()
+		conn, err := p.listener.Accept()
 		if err != nil {
 			errorCount++
 			if errorCount > p.host.MaxListenErrors {
@@ -56,7 +54,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 	return nil
 }
 
-func proxyWorker(c chan *net.TCPConn, backend *Backend, handler Handler) {
+func proxyWorker(c chan net.Conn, backend *Backend, handler Handler) {
 	for conn := range c {
 		if err := handler.HandleConn(conn); err != nil {
 			logger.Errorf("handle connection %s", err)

@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -10,15 +11,27 @@ import (
 )
 
 func newRawTcpHandler(host *Host, backend *Backend) (*tcpHandler, error) {
-	return &tcpHandler{
+	p := &tcpHandler{
 		host:    host,
 		backend: backend,
-	}, nil
+	}
+
+	if backend.Cert != "" {
+		config, err := createTLSConfig(backend.Cert, backend.Key, backend.CA)
+		if err != nil {
+			return nil, err
+		}
+
+		p.config = config
+	}
+
+	return p, nil
 }
 
 type tcpHandler struct {
 	host    *Host
 	backend *Backend
+	config  *tls.Config
 }
 
 func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
@@ -45,8 +58,22 @@ func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
 	group := &sync.WaitGroup{}
 	group.Add(2)
 
-	go transfer(conn, dest, group)
-	go transfer(dest, conn, group)
+	c2 := &tcpConn{
+		readCon:  conn,
+		closeCon: conn,
+	}
+
+	if p.config != nil {
+		c2.readCon = tls.Server(conn, p.config)
+	}
+
+	d2 := &tcpConn{
+		readCon:  dest,
+		closeCon: dest,
+	}
+
+	go transfer(c2, d2, group)
+	go transfer(d2, c2, group)
 
 	group.Wait()
 
@@ -55,7 +82,7 @@ func (p *tcpHandler) HandleConn(rawConn net.Conn) error {
 	return nil
 }
 
-func transfer(from, to *net.TCPConn, group *sync.WaitGroup) {
+func transfer(from, to *tcpConn, group *sync.WaitGroup) {
 	defer group.Done()
 
 	if _, err := io.Copy(to, from); err != nil {
