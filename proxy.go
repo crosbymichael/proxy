@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+
+	"github.com/samalba/dockerclient"
 )
 
 type Proxy interface {
@@ -17,10 +19,10 @@ type handler interface {
 	HandleConn(net.Conn) error
 }
 
-func New(backend *Backend) (proxy Proxy, err error) {
+func New(backend *Backend, docker *dockerclient.DockerClient) (proxy Proxy, err error) {
 	switch backend.Proto {
 	case "tcp":
-		proxy, err = newTcpPRoxy(backend)
+		proxy, err = newTcpPRoxy(backend, docker)
 	default:
 		return nil, fmt.Errorf("unsupported protocol %s", backend.Proto)
 	}

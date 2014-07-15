@@ -9,6 +9,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/crosbymichael/proxy"
 	"github.com/gorilla/mux"
+	"github.com/samalba/dockerclient"
 )
 
 type Server interface {
@@ -22,21 +23,23 @@ type server struct {
 	r        *mux.Router
 	backends map[string]proxy.Proxy
 	logger   *logrus.Logger
+	docker   *dockerclient.DockerClient
 }
 
-func New(logger *logrus.Logger) Server {
+func New(logger *logrus.Logger, docker *dockerclient.DockerClient) Server {
 	r := mux.NewRouter()
 
 	s := &server{
 		r:        r,
 		logger:   logger,
 		backends: make(map[string]proxy.Proxy),
+		docker:   docker,
 	}
 
 	r.HandleFunc("/", s.listBackends).Methods("GET")
-	r.HandleFunc("/{id:.*}/", s.getBackend).Methods("GET")
-	r.HandleFunc("/{id:.*}/", s.addBackend).Methods("POST")
-	r.HandleFunc("/{id:.*}/", s.deleteBackend).Methods("DELETE")
+	r.HandleFunc("/{id:.*}", s.getBackend).Methods("GET")
+	r.HandleFunc("/{id:.*}", s.addBackend).Methods("POST")
+	r.HandleFunc("/{id:.*}", s.deleteBackend).Methods("DELETE")
 
 	return s
 }
@@ -49,6 +52,19 @@ func (s *server) Close() error {
 	s.Lock()
 	defer s.Unlock()
 
+	var err error
+	for id, p := range s.backends {
+		if nerr := p.Close(); nerr != nil {
+			s.logger.WithFields(logrus.Fields{
+				"error": err,
+				"id":    id,
+			}).Error("closing backend proxy")
+
+			err = nerr
+		}
+	}
+
+	return err
 }
 
 func (s *server) listBackends(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +99,7 @@ func (s *server) getBackend(w http.ResponseWriter, r *http.Request) {
 	s.marshal(w, p.Backend())
 }
 
-func (s *server) addBackends(w http.ResponseWriter, r *http.Request) {
+func (s *server) addBackend(w http.ResponseWriter, r *http.Request) {
 	var (
 		backend *proxy.Backend
 		id      = mux.Vars(r)["id"]
@@ -97,11 +113,12 @@ func (s *server) addBackends(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+	backend.Name = id
 
 	s.Lock()
 	defer s.Unlock()
 
-	proxy, err := proxy.New(backend)
+	proxy, err := proxy.New(backend, s.docker)
 	if err != nil {
 		s.logger.WithField("error", err).Error("creating new proxy")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -127,7 +144,7 @@ func (s *server) addBackends(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (s *server) deleteBackends(w http.ResponseWriter, r *http.Request) {
+func (s *server) deleteBackend(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	s.logger.WithField("id", id).Info("deleting backend")

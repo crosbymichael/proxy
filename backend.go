@@ -3,30 +3,22 @@ package proxy
 import "net"
 
 type Backend struct {
-	// Name of the backend populated by the internal code
-	Name string
-	// Protocol of the proxy
-	Proto string `toml:"proto"`
-	// Ip that the proxy binds to
-	ListenIP net.IP `toml:"listen_ip"`
-	// Port that the proxy binds to
-	ListenPort int `toml:"listen_port"`
-	// Ip of the backend
-	IP net.IP `toml:"ip"`
-	// Port of the backend
-	Port int `toml:"port"`
-	// Maximum concurrent connections
-	MaxConcurrent int `toml:"max_concurrent"`
-	// How many connections to buffer
-	ConnectionBuffer int `toml:"connection_buffer"`
+	Name             string `json:"name,omitempty"`
+	Proto            string `json:"proto,omitempty"`
+	BindIP           net.IP `json:"bind_ip,omitempty"`
+	BindPort         int    `json:"bind_port,omitempty"`
+	IP               net.IP `json:"backend_ip,omitempty"`
+	Port             int    `json:"backend_port,omitempty"`
+	MaxConcurrent    int    `json:"max_concurrent,omitempty"`
+	ConnectionBuffer int    `json:"connection_buffer,omitempty"`
 
 	// TLS client side certs
-	Cert string `toml:"cert"`
-	Key  string `toml:"key"`
-	CA   string `toml:"ca"`
+	Cert string `json:"cert,omitempty"`
+	Key  string `json:"key,omitempty"`
+	CA   string `json:"ca,omitempty"`
 
 	// Docker container to start for incoming connections
-	Container string `toml:"container"`
+	Container string `json:"container,omitempty"`
 	// Seconds to stop a container on inactivity
-	ContainerStopTimeout int `toml:"container_stop_timeout"`
+	ContainerStopTimeout int `json:"container_stop_timeout,omitempty"`
 }

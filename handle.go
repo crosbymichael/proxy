@@ -35,8 +35,8 @@ func (w *worker) handleConn(rawConn net.Conn) error {
 	}
 
 	dest, err := net.DialTCP("tcp", nil, &net.TCPAddr{
-		IP:   p.backend.IP,
-		Port: p.backend.Port,
+		IP:   w.p.backend.IP,
+		Port: w.p.backend.Port,
 	})
 	if err != nil {
 		return err

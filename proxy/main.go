@@ -2,11 +2,13 @@ package main
 
 import (
 	"flag"
-	"sync"
+	"net/http"
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/crosbymichael/proxy"
+	"github.com/crosbymichael/proxy/server"
+	"github.com/samalba/dockerclient"
 )
 
 var (
@@ -54,44 +56,22 @@ func main() {
 		logger.Fatalf("setting rlimit %s", err)
 	}
 
-	group := &sync.WaitGroup{}
+	var (
+		err    error
+		client *dockerclient.DockerClient
+	)
 
-	// TODO: send close to other backends
-	for name, backend := range config.Backends {
-		group.Add(1)
-
-		var (
-			nv = name
-			bv = backend
-		)
-		bv.Name = nv
-
-		logger.Infof("starting proxy %s for %s", bv.Proto, nv)
-
-		p, err := proxy.NewProxy(config, bv)
+	if docker != "" {
+		client, err = dockerclient.NewDockerClient(docker)
 		if err != nil {
-			logger.Fatalf("failed to create proxy %s", err)
+			logger.WithField("error", err).Fatal("connecting to docker")
 		}
-
-		handler, err := proxy.NewHandler(config, bv)
-		if err != nil {
-			logger.Fatalf("failed to create handler %s", err)
-		}
-
-		go func() {
-			defer group.Done()
-
-			if err := p.Run(handler); err != nil {
-				logger.Fatalf("running proxy %s", err)
-			}
-
-			handler.Close()
-		}()
 	}
 
+	s := server.New(logger, client)
 	go proxy.CollectStats()
 
-	group.Wait()
-
-	logger.Infof("proxy going down")
+	if err := http.ListenAndServe(":3131", s); err != nil {
+		logger.WithField("error", err).Fatal("serving http")
+	}
 }

@@ -1,0 +1,9 @@
+{
+    "bind_ip": "127.0.0.1",
+    "bind_port": 6379,
+    "proto": "tcp",
+    "max_concurrent": 100,
+    "connection_buffer": 50,
+    "backend_ip": "127.0.0.1",
+    "backend_port": 6378
+}

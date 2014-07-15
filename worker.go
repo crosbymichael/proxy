@@ -25,8 +25,8 @@ type worker struct {
 	lastCount  int64
 }
 
-func newWorker(p *tcpProxy, docker *dockerclient.DockerClient, config *tls.Config) (*worker, error) {
-	w := &tcpHandler{
+func newWorker(p *tcpProxy, docker *dockerclient.DockerClient, config *tls.Config) *worker {
+	w := &worker{
 		p:      p,
 		docker: docker,
 		config: config,
@@ -39,7 +39,7 @@ func newWorker(p *tcpProxy, docker *dockerclient.DockerClient, config *tls.Confi
 		go w.checkLoop()
 	}
 
-	return p, nil
+	return w
 }
 
 func (w *worker) registerCounters() {
@@ -71,15 +71,15 @@ func (w *worker) work() {
 }
 
 func (w *worker) startContainer() error {
-	p.Lock()
-	defer p.Unlock()
+	w.Lock()
+	defer w.Unlock()
 
-	if !p.containerIsRunning {
+	if !w.containerIsRunning {
 		logger.Info("starting container")
 
-		p.containerIsRunning = true
+		w.containerIsRunning = true
 
-		if err := p.docker.StartContainer(p.backend.Container, nil); err != nil {
+		if err := w.docker.StartContainer(w.p.backend.Container, nil); err != nil {
 			return err
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -89,29 +89,29 @@ func (w *worker) startContainer() error {
 }
 
 func (w *worker) checkLoop() {
-	seconds := p.backend.ContainerStopTimeout
+	seconds := w.p.backend.ContainerStopTimeout
 	if seconds <= 0 {
 		seconds = 300
 	}
 
 	for _ = range time.Tick(time.Duration(seconds) * time.Second) {
-		if p.closed {
+		if w.closed {
 			return
 		}
 
-		current := p.totalConns.Count()
+		current := w.totalConns.Count()
 
-		if p.lastCount == current && p.liveConns.Count() == 0 {
-			p.Lock()
+		if w.lastCount == current && w.liveConns.Count() == 0 {
+			w.Lock()
 
-			p.containerIsRunning = false
-			if err := p.docker.StopContainer(p.backend.Container, 10); err != nil {
+			w.containerIsRunning = false
+			if err := w.docker.StopContainer(w.p.backend.Container, 10); err != nil {
 				logger.WithField("error", err).Error("stopping container")
 			}
 
-			p.Unlock()
+			w.Unlock()
 		}
 
-		p.lastCount = current
+		w.lastCount = current
 	}
 }

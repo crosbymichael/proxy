@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
+	"github.com/samalba/dockerclient"
 )
 
 type tcpProxy struct {
@@ -12,14 +14,16 @@ type tcpProxy struct {
 	listener    net.Listener
 	connections chan net.Conn
 	group       *sync.WaitGroup
+	docker      *dockerclient.DockerClient
 	started     bool
 }
 
-func newTcpPRoxy(backend *Backend) (*tcpProxy, error) {
+func newTcpPRoxy(backend *Backend, docker *dockerclient.DockerClient) (*tcpProxy, error) {
 	return &tcpProxy{
 		backend:     backend,
 		connections: make(chan net.Conn, backend.ConnectionBuffer),
 		group:       &sync.WaitGroup{},
+		docker:      docker,
 	}, nil
 }
 
@@ -53,8 +57,8 @@ func (p *tcpProxy) Start() (err error) {
 	}
 
 	if p.listener, err = net.ListenTCP("tcp", &net.TCPAddr{
-		IP:   p.backend.ListenIP,
-		Port: p.backend.ListenPort,
+		IP:   p.backend.BindIP,
+		Port: p.backend.BindPort,
 	}); err != nil {
 		return err
 	}
@@ -62,26 +66,28 @@ func (p *tcpProxy) Start() (err error) {
 	for i := 0; i < p.backend.MaxConcurrent; i++ {
 		logger.Infof("starting worker %d", i)
 
-		group.Add(1)
+		p.group.Add(1)
 
-		woker := newWorker(p, docker, config)
+		worker := newWorker(p, p.docker, config)
 		go worker.work()
 	}
 
-	for {
-		if !p.started {
-			break
+	go func() {
+		for {
+			if !p.started {
+				break
+			}
+
+			conn, err := p.listener.Accept()
+			if err != nil {
+				logger.WithField("error", err).Errorf("tcp accept")
+
+				continue
+			}
+
+			p.connections <- conn
 		}
-
-		conn, err := p.listener.Accept()
-		if err != nil {
-			logger.WithField("error", err).Errorf("tcp accept")
-
-			continue
-		}
-
-		connections <- conn
-	}
+	}()
 
 	return nil
 }
