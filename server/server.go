@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -106,6 +107,16 @@ func (s *server) addBackend(w http.ResponseWriter, r *http.Request) {
 	)
 
 	s.logger.WithField("id", id).Debug("adding new backend")
+
+	s.Lock()
+	_, exists := s.backends[id]
+	s.Unlock()
+
+	if exists {
+		http.Error(w, fmt.Sprintf("%s already exists", id), http.StatusConflict)
+
+		return
+	}
 
 	if err := json.NewDecoder(r.Body).Decode(&backend); err != nil {
 		s.logger.WithField("error", err).Error("decoding backend json")
