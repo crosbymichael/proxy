@@ -8,25 +8,44 @@ import (
 )
 
 type Host struct {
-	Backends        map[string]*Backend `toml:"backends"`
-	Log             string              `toml:"log"`
-	MaxListenErrors int                 `toml:"max_listen_errors"` // number of errors to accept before failing
-	Docker          string              `toml:"docker"`
+	Backends map[string]*Backend `toml:"backends"`
+	// Where to log output to
+	Log string `toml:"log"`
+	// Number of errors to accept before failing
+	MaxListenErrors int `toml:"max_listen_errors"`
+	// Docker api endpoint to start containers on
+	Docker string `toml:"docker"`
+	// Rlimit to set
+	Rlimit uint64 `toml:"rlimit"`
 }
 
 type Backend struct {
-	Name             string
-	Proto            string `toml:"proto"`
-	ListenIP         net.IP `toml:"listen_ip"`
-	ListenPort       int    `toml:"listen_port"`
-	IP               net.IP `toml:"ip"`
-	Port             int    `toml:"port"`
-	MaxConcurrent    int    `toml:"max_concurrent"`
-	ConnectionBuffer int    `toml:"connection_buffer"`
-	Cert             string `toml:"cert"`
-	Key              string `toml:"key"`
-	CA               string `toml:"ca"`
-	Container        string `toml:"container"`
+	// Name of the backend populated by the internal code
+	Name string
+	// Protocol of the proxy
+	Proto string `toml:"proto"`
+	// Ip that the proxy binds to
+	ListenIP net.IP `toml:"listen_ip"`
+	// Port that the proxy binds to
+	ListenPort int `toml:"listen_port"`
+	// Ip of the backend
+	IP net.IP `toml:"ip"`
+	// Port of the backend
+	Port int `toml:"port"`
+	// Maximum concurrent connections
+	MaxConcurrent int `toml:"max_concurrent"`
+	// How many connections to buffer
+	ConnectionBuffer int `toml:"connection_buffer"`
+
+	// TLS client side certs
+	Cert string `toml:"cert"`
+	Key  string `toml:"key"`
+	CA   string `toml:"ca"`
+
+	// Docker container to start for incoming connections
+	Container string `toml:"container"`
+	// Seconds to stop a container on inactivity
+	ContainerStopTimeout int `toml:"container_stop_timeout"`
 }
 
 func LoadConfig(r io.Reader) (*Host, error) {

@@ -20,11 +20,12 @@ func (p *tcpProxy) Close() error {
 }
 
 func (p *tcpProxy) Run(handler Handler) (err error) {
-	p.listener, err = net.ListenTCP("tcp", &net.TCPAddr{IP: p.backend.ListenIP, Port: p.backend.ListenPort})
-	if err != nil {
+	if p.listener, err = net.ListenTCP("tcp", &net.TCPAddr{
+		IP:   p.backend.ListenIP,
+		Port: p.backend.ListenPort,
+	}); err != nil {
 		return err
 	}
-	defer p.Close()
 
 	var (
 		errorCount  int
@@ -40,6 +41,7 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 		if err != nil {
 			errorCount++
 			if errorCount > p.host.MaxListenErrors {
+				p.Close()
 				return err
 			}
 
@@ -50,6 +52,8 @@ func (p *tcpProxy) Run(handler Handler) (err error) {
 
 		connections <- conn
 	}
+
+	p.Close()
 
 	return nil
 }

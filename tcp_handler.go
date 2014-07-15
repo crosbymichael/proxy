@@ -148,7 +148,12 @@ func (p *tcpHandler) startContainer() error {
 }
 
 func (p *tcpHandler) checkLoop() {
-	for _ = range time.Tick(10 * time.Second) {
+	seconds := p.backend.ContainerStopTimeout
+	if seconds <= 0 {
+		seconds = 300
+	}
+
+	for _ = range time.Tick(time.Duration(seconds) * time.Second) {
 		if p.closed {
 			return
 		}
@@ -171,8 +176,6 @@ func (p *tcpHandler) checkLoop() {
 }
 
 func transfer(from, to *tcpConn, group *sync.WaitGroup) {
-	defer group.Done()
-
 	if _, err := io.Copy(to, from); err != nil {
 		if err, ok := err.(*net.OpError); ok && err.Err == syscall.EPIPE {
 			from.CloseWrite()
@@ -181,4 +184,6 @@ func transfer(from, to *tcpConn, group *sync.WaitGroup) {
 	}
 
 	to.CloseRead()
+
+	group.Done()
 }

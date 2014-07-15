@@ -10,8 +10,6 @@ import (
 	"github.com/crosbymichael/proxy"
 )
 
-const MAX_RLIMIT = 10032
-
 var (
 	config string
 	logger = logrus.New()
@@ -22,22 +20,24 @@ func init() {
 	flag.Parse()
 }
 
-func setRlimit() error {
-	var limit syscall.Rlimit
-	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
-		return err
-	}
-
-	logger.WithFields(logrus.Fields{
-		"current": limit.Cur,
-		"max":     limit.Max,
-	}).Info("rlimits")
-
-	if limit.Cur < MAX_RLIMIT {
-		limit.Cur = MAX_RLIMIT
-
-		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+func setRlimit(host *proxy.Host) error {
+	if host.Rlimit > 0 {
+		var limit syscall.Rlimit
+		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
 			return err
+		}
+
+		logger.WithFields(logrus.Fields{
+			"current": limit.Cur,
+			"max":     limit.Max,
+		}).Info("rlimits")
+
+		if limit.Cur < host.Rlimit {
+			limit.Cur = host.Rlimit
+
+			if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -56,11 +56,12 @@ func main() {
 	}
 	f.Close()
 
-	if err := setRlimit(); err != nil {
+	if err := setRlimit(config); err != nil {
 		logger.Fatalf("setting rlimit %s", err)
 	}
 
 	logger.Infof("configuration loaded")
+
 	group := &sync.WaitGroup{}
 
 	// TODO: send close to other backends

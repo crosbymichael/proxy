@@ -1,5 +1,6 @@
 log = "stderr"
 docker = "http://192.168.56.101:2375"
+rlimit = 10032
 
 [backends]
     [backends.redis]
