@@ -22,5 +22,5 @@ func init() {
 }
 
 func CollectStats() {
-	metrics.Log(metrics.DefaultRegistry, 10*time.Second, log.New(os.Stderr, "[stats] ", log.LstdFlags))
+	metrics.Log(metrics.DefaultRegistry, 60*time.Second, log.New(os.Stderr, "[stats] ", log.LstdFlags))
 }

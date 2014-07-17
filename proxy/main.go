@@ -15,6 +15,7 @@ import (
 
 var (
 	docker  string
+	addr    string
 	irlimit int64
 
 	logger = logrus.New()
@@ -22,6 +23,7 @@ var (
 
 func init() {
 	flag.StringVar(&docker, "docker", "unix:///var/run/docker.sock", "docker api endpoint")
+	flag.StringVar(&addr, "addr", "127.0.0.1:3111", "proxy REST API address")
 	flag.Int64Var(&irlimit, "rlimit", 0, "rlimit")
 
 	flag.Parse()
@@ -84,7 +86,7 @@ func main() {
 	}()
 	go proxy.CollectStats()
 
-	if err := http.ListenAndServe(":3131", s); err != nil {
+	if err := http.ListenAndServe(addr, s); err != nil {
 		logger.WithField("error", err).Fatal("serving http")
 	}
 }
