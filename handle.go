@@ -28,12 +28,6 @@ func (w *worker) handleConn(rawConn net.Conn) error {
 		w.liveConns.Dec(1)
 	}()
 
-	if !w.containerIsRunning && w.p.backend.Container != "" {
-		if err := w.startContainer(); err != nil {
-			return err
-		}
-	}
-
 	dest, err := net.DialTCP("tcp", nil, &net.TCPAddr{
 		IP:   w.p.backend.IP,
 		Port: w.p.backend.Port,

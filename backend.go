@@ -16,9 +16,4 @@ type Backend struct {
 	Cert string `json:"cert,omitempty"`
 	Key  string `json:"key,omitempty"`
 	CA   string `json:"ca,omitempty"`
-
-	// Docker container to start for incoming connections
-	Container string `json:"container,omitempty"`
-	// Seconds to stop a container on inactivity
-	ContainerStopTimeout int `json:"container_stop_timeout,omitempty"`
 }

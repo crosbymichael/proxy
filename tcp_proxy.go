@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net"
 	"sync"
-
-	"github.com/samalba/dockerclient"
 )
 
 type tcpProxy struct {
@@ -14,16 +12,14 @@ type tcpProxy struct {
 	listener    net.Listener
 	connections chan net.Conn
 	group       *sync.WaitGroup
-	docker      *dockerclient.DockerClient
 	started     bool
 }
 
-func newTcpPRoxy(backend *Backend, docker *dockerclient.DockerClient) (*tcpProxy, error) {
+func newTcpPRoxy(backend *Backend) (*tcpProxy, error) {
 	return &tcpProxy{
 		backend:     backend,
 		connections: make(chan net.Conn, backend.ConnectionBuffer),
 		group:       &sync.WaitGroup{},
-		docker:      docker,
 	}, nil
 }
 
@@ -68,7 +64,7 @@ func (p *tcpProxy) Start() (err error) {
 
 		p.group.Add(1)
 
-		worker := newWorker(p, p.docker, config)
+		worker := newWorker(p, config)
 		go worker.work()
 	}
 

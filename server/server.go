@@ -10,7 +10,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/crosbymichael/proxy"
 	"github.com/gorilla/mux"
-	"github.com/samalba/dockerclient"
 )
 
 type Server interface {
@@ -24,17 +23,15 @@ type server struct {
 	r        *mux.Router
 	backends map[string]proxy.Proxy
 	logger   *logrus.Logger
-	docker   *dockerclient.DockerClient
 }
 
-func New(logger *logrus.Logger, docker *dockerclient.DockerClient) Server {
+func New(logger *logrus.Logger) Server {
 	r := mux.NewRouter()
 
 	s := &server{
 		r:        r,
 		logger:   logger,
 		backends: make(map[string]proxy.Proxy),
-		docker:   docker,
 	}
 
 	r.HandleFunc("/", s.listBackends).Methods("GET")
@@ -129,7 +126,7 @@ func (s *server) addBackend(w http.ResponseWriter, r *http.Request) {
 	s.Lock()
 	defer s.Unlock()
 
-	proxy, err := proxy.New(backend, s.docker)
+	proxy, err := proxy.New(backend)
 	if err != nil {
 		s.logger.WithField("error", err).Error("creating new proxy")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
