@@ -60,7 +60,7 @@ func (p *tcpProxy) Start() (err error) {
 	}
 
 	for i := 0; i < p.backend.MaxConcurrent; i++ {
-		logger.Infof("starting worker %d", i)
+		logger.Debugf("starting worker %d", i)
 
 		p.group.Add(1)
 
