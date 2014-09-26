@@ -15,7 +15,7 @@ type tcpProxy struct {
 	started     bool
 }
 
-func newTcpPRoxy(backend *Backend) (*tcpProxy, error) {
+func newTcpProxy(backend *Backend) (Proxy, error) {
 	return &tcpProxy{
 		backend:     backend,
 		connections: make(chan net.Conn, backend.ConnectionBuffer),
@@ -64,7 +64,7 @@ func (p *tcpProxy) Start() (err error) {
 
 		p.group.Add(1)
 
-		worker := newWorker(p, config)
+		worker := newTcpWorker(p, config)
 		go worker.work()
 	}
 
