@@ -11,6 +11,8 @@ import (
 var (
 	tcpLiveConnections metrics.Counter
 	tcpRequestTimer    metrics.Timer
+	udpLiveConnections metrics.Counter
+	udpRequestTimer    metrics.Timer
 )
 
 func init() {
@@ -19,6 +21,12 @@ func init() {
 
 	tcpRequestTimer = metrics.NewTimer()
 	metrics.Register("tcp_requests_timer", tcpRequestTimer)
+
+	udpLiveConnections = metrics.NewCounter()
+	metrics.Register("udp_live_connections", udpLiveConnections)
+
+	udpRequestTimer = metrics.NewTimer()
+	metrics.Register("udp_requests_timer", udpRequestTimer)
 }
 
 func CollectStats() {
